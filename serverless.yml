@@ -11,6 +11,7 @@ provider:
 plugins:
   - serverless-step-functions
   - serverless-export-env
+  - serverless-iam-roles-per-function
 
 custom:
   stage: ${opt:stage, self:provider.stage}
@@ -20,6 +21,15 @@ custom:
 functions:
   checkInventory:
     handler: src/functions/checkInventory.handler
+    environment:
+      BOOK_TABLE: !Ref BookTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:Query
+        Resource: !GetAtt BookTable.Arn
+      - Effect: Allow
+        Action: dynamodb:Query
+        Resource: !GetAtt UserTable.Arn
   calculateTotal:
     handler: src/functions/calculateTotal.handler
 
@@ -68,9 +78,23 @@ stepFunctions:
             Type: Task
             Resource:
               Fn::GetAtt: [checkInventory, Arn]
+            Catch:
+              - ErrorEquals: [BookNotFound]
+                Next: BookNotFoundError
+              - ErrorEquals: [BookOutOfStock]
+                Next: BookOutOfStockError
+            ResultPath: "$.book"
             Next: calculateTotal
           calculateTotal:
             Type: Task
             Resource:
               Fn::GetAtt: [calculateTotal, Arn]
+            End: true
+          BookNotFoundError:
+            Type: Pass
+            Result: "No such book available"
+            End: true
+          BookOutOfStockError:
+            Type: Pass
+            Result: "Sorry, the book is out of stock"
             End: true

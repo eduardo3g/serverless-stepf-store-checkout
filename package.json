@@ -21,6 +21,7 @@
     "aws-sdk": "^2.1146.0",
     "dotenv": "^16.0.1",
     "serverless-export-env": "^1.4.0",
+    "serverless-iam-roles-per-function": "^3.2.0",
     "serverless-step-functions": "^3.7.0"
   },
   "dependencies": {
