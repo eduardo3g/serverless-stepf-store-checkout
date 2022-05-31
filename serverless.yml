@@ -27,11 +27,20 @@ functions:
       - Effect: Allow
         Action: dynamodb:Query
         Resource: !GetAtt BookTable.Arn
-      - Effect: Allow
-        Action: dynamodb:Query
-        Resource: !GetAtt UserTable.Arn
   calculateTotal:
     handler: src/functions/calculateTotal.handler
+  redeemPoints:
+    handler: src/functions/redeemPoints.handler
+    USER_TABLE: !Ref UserTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:GetItem
+        Resource: !GetAtt UserTable.Arn
+      - Effect: Allow
+        Action: dynamodb:UpdateItem
+        Resource: !GetAtt UserTable.Arn
+  billCustomer:
+    handler: src/functions/billCustomer.handler
 
 resources:
   Resources:
@@ -89,7 +98,29 @@ stepFunctions:
             Type: Task
             Resource:
               Fn::GetAtt: [calculateTotal, Arn]
-            End: true
+            ResultPath: "$.total"
+            End: isRedeemNeeded
+          isRedeemNeeded:
+            Type: Choice
+            Choices:
+              - Variable: $.redeem
+                BooleanEquals: true
+                Next: RedeemPoints
+            Default: BillCustomer
+          RedeemPoints:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [redeemPoints, Arn]
+            ResultPath: "$.total"
+            Catch:
+              - ErrorEquals: [States.ALL]
+                Next: RedeemPointsError
+            Next: BillCustomer
+          BillCustomer:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [billCustomer, Arn]
+            Next: PrepareOrder
           BookNotFoundError:
             Type: Pass
             Result: "No such book available"
@@ -97,4 +128,8 @@ stepFunctions:
           BookOutOfStockError:
             Type: Pass
             Result: "Sorry, the book is out of stock"
+            End: true
+          RedeemPointsError:
+            Type: Pass
+            Result: "Error in redeeming points"
             End: true

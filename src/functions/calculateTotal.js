@@ -1,3 +1,5 @@
-module.exports.handler = async (event) => {
-  return 100;
+module.exports.handler = async ({ book, quantity }) => {
+  return {
+    total: book.price * quantity,
+  };
 };
