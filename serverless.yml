@@ -120,6 +120,7 @@ stepFunctions:
             Type: Task
             Resource:
               Fn::GetAtt: [billCustomer, Arn]
+              ResultPath: "$.billingStatus"
             Next: PrepareOrder
           BookNotFoundError:
             Type: Pass
