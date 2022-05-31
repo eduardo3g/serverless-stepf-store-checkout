@@ -10,6 +10,12 @@ provider:
 
 plugins:
   - serverless-step-functions
+  - serverless-export-env
+
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  export-env:
+    overwrite: true
 
 functions:
   checkInventory:
@@ -45,6 +51,11 @@ resources:
         Tags:
           - Key: Name
             Value: user-table
+  Outputs:
+    BookTableName:
+      Value: !Ref BookTable
+    UserTableName:
+      Value: !Ref UserTable
 
 stepFunctions:
   stateMachines:

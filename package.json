@@ -4,7 +4,7 @@
   "description": "",
   "main": "handler.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "exportEnv": "sls export-env --all"
   },
   "repository": {
     "type": "git",
@@ -18,6 +18,12 @@
   },
   "homepage": "https://github.com/eduardo3g/serverless-stepf-store-checkout#readme",
   "devDependencies": {
+    "aws-sdk": "^2.1146.0",
+    "dotenv": "^16.0.1",
+    "serverless-export-env": "^1.4.0",
     "serverless-step-functions": "^3.7.0"
+  },
+  "dependencies": {
+    "ulid": "^2.3.0"
   }
 }
