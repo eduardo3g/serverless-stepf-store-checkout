@@ -17,6 +17,35 @@ functions:
   calculateTotal:
     handler: src/functions/calculateTotal.handler
 
+resources:
+  Resources:
+    BookTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        KeySchema:
+          - AttributeName: bookId
+            KeyType: HASH
+        AttributeDefinitions:
+          - AttributeName: bookId
+            AttributeType: S
+        Tags:
+          - Key: Name
+            Value: book-table
+    UserTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+        Tags:
+          - Key: Name
+            Value: user-table
+
 stepFunctions:
   stateMachines:
     storeCheckoutFlow:
