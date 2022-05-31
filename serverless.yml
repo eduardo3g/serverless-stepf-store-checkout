@@ -12,5 +12,25 @@ plugins:
   - serverless-step-functions
 
 functions:
-  hello:
-    handler: handler.hello
+  checkInventory:
+    handler: src/functions/checkInventory.handler
+  calculateTotal:
+    handler: src/functions/calculateTotal.handler
+
+stepFunctions:
+  stateMachines:
+    storeCheckoutFlow:
+      name: storeCheckoutFlow
+      definition:
+        StartAt: checkInventory
+        States:
+          checkInventory:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [checkInventory, Arn]
+            Next: calculateTotal
+          calculateTotal:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [calculateTotal, Arn]
+            End: true
