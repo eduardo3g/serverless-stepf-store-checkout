@@ -59,6 +59,12 @@ functions:
       - Effect: Allow
         Action: dynamodb:UpdateItem
         Resource: !GetAtt BookTable.Arn
+      - Effect: Allow
+        Action: states:SendTaskSuccess
+        Resource: $${self:resources.Outputs.StoreCheckoutStateMachineArn.Value}
+      - Effect: Allow
+        Action: states:SendTaskFailure
+        Resource: $${self:resources.Outputs.StoreCheckoutStateMachineArn.Value}
     events:
       - sqs:
           arn: !GetAtt OrdersQueue.Arn
@@ -104,6 +110,14 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: ${self:service}-${self:custom.stage}-queue
+    OrdersTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        DisplayName: ${self:service}-${self:custom.stage}-orders-topic
+        TopicName: ${self:service}-${self:custom.stage}-orders-topic
+        Subscription:
+          - Endpoint: eduardosbrasil10@gmail.com
+            Protocol: email
   Outputs:
     BookTableName:
       Value: !Ref BookTable
@@ -111,11 +125,14 @@ resources:
       Value: !Ref UserTable
     OrdersQueueUrl:
       Value: !Ref OrdersQueue
+    StoreCheckoutStateMachineArn:
+      Value:
+        Ref: StoreCheckoutFlow
 
 stepFunctions:
   stateMachines:
     storeCheckoutFlow:
-      name: storeCheckoutFlow
+      name: StoreCheckoutFlow
       definition:
         StartAt: checkInventory
         States:
@@ -179,6 +196,17 @@ stepFunctions:
                 ResultPath: "$.courierError"
                 Next: RefundCustomer
             Next: DispatchOrder
+          DispatchOrder:
+            Type: Task
+            Resource: arn:aws:states:::sns:publish
+            Parameters:
+              TopicArn: !Ref OrdersTopic
+              Message.$: "$"
+            Next: Dispatched
+          Dispatched:
+            Type: Pass
+            Result: "Your order will be dispatched in 24 hours"
+            End: true
           RefundCustomer:
             Type: Pass
             Result: "Customer is refunded"

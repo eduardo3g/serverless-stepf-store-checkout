@@ -21,10 +21,11 @@ const updateBookQuantity = async (bookId, orderQuantity) => {
 };
 
 module.exports.handler = async (event) => {
+  const record = event.Records[0];
+  const body = JSON.parse(record.body);
+
   try {
     console.log(JSON.stringify(event));
-    const record = event.Records[0];
-    const body = JSON.parse(record.body);
     const { bookId, quantity } = body.Input;
 
     const courier = "eduardosbrasil10@gmail.com";
