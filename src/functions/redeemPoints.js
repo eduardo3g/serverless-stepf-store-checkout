@@ -18,7 +18,7 @@ const deductPoints = async (userId) => {
 
 module.exports.handler = async ({ userId, total }) => {
   try {
-    const orderTotal = total.total;
+    let orderTotal = total.total;
 
     const params = {
       TableName: USER_TABLE,
