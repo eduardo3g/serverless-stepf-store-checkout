@@ -31,7 +31,8 @@ functions:
     handler: src/functions/calculateTotal.handler
   redeemPoints:
     handler: src/functions/redeemPoints.handler
-    USER_TABLE: !Ref UserTable
+    environment:
+      USER_TABLE: !Ref UserTable
     iamRoleStatements:
       - Effect: Allow
         Action: dynamodb:GetItem
@@ -41,6 +42,15 @@ functions:
         Resource: !GetAtt UserTable.Arn
   billCustomer:
     handler: src/functions/billCustomer.handler
+  restoreRedeemPoints:
+    handler: src/functions/restoreRedeemPoints.handler
+    environment:
+      USER_TABLE: !Ref UserTable
+    iamRoleStatementsName: restoreRedeemPointsDDBRole
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:UpdateItem
+        Resource: !GetAtt UserTable.Arn
 
 resources:
   Resources:
@@ -99,7 +109,7 @@ stepFunctions:
             Resource:
               Fn::GetAtt: [calculateTotal, Arn]
             ResultPath: "$.total"
-            End: isRedeemNeeded
+            Next: isRedeemNeeded
           isRedeemNeeded:
             Type: Choice
             Choices:
@@ -120,8 +130,15 @@ stepFunctions:
             Type: Task
             Resource:
               Fn::GetAtt: [billCustomer, Arn]
-              ResultPath: "$.billingStatus"
-            Next: PrepareOrder
+            ResultPath: "$.billingStatus"
+            Retry:
+              - ErrorEquals: [States.ALL]
+                MaxAttempts: 3
+            Catch:
+              - ErrorEquals: [States.ALL]
+                ResultPath: "$.customerBilling"
+                Next: BillingError
+            End: true
           BookNotFoundError:
             Type: Pass
             Result: "No such book available"
@@ -133,4 +150,14 @@ stepFunctions:
           RedeemPointsError:
             Type: Pass
             Result: "Error in redeeming points"
+            End: true
+          BillingError:
+            Type: Pass
+            Result: "Billing error"
+            ResultPath: "$.billingStatus"
+            Next: RestoreRedeemPoints
+          RestoreRedeemPoints:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [restoreRedeemPoints, Arn]
             End: true
