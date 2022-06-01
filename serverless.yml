@@ -51,6 +51,26 @@ functions:
       - Effect: Allow
         Action: dynamodb:UpdateItem
         Resource: !GetAtt UserTable.Arn
+  sqsWorker:
+    handler: src/functions/sqsWorker.handler
+    environment:
+      BOOK_TABLE: !Ref BookTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:UpdateItem
+        Resource: !GetAtt BookTable.Arn
+    events:
+      - sqs:
+          arn: !GetAtt OrdersQueue.Arn
+          batchSize: 1
+  restoreQuantity:
+    handler: src/functions/restoreQuantity.handler
+    environment:
+      BOOK_TABLE: !Ref BookTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:UpdateItem
+        Resource: !GetAtt BookTable.Arn
 
 resources:
   Resources:
@@ -80,11 +100,17 @@ resources:
         Tags:
           - Key: Name
             Value: user-table
+    OrdersQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:custom.stage}-queue
   Outputs:
     BookTableName:
       Value: !Ref BookTable
     UserTableName:
       Value: !Ref UserTable
+    OrdersQueueUrl:
+      Value: !Ref OrdersQueue
 
 stepFunctions:
   stateMachines:
@@ -138,7 +164,32 @@ stepFunctions:
               - ErrorEquals: [States.ALL]
                 ResultPath: "$.customerBilling"
                 Next: BillingError
-            End: true
+            Next: PrepareOrder
+          PrepareOrder:
+            Type: Task
+            Resource: arn:aws:states:::sqs:sendMessage.waitForTaskToken
+            Parameters:
+              QueueUrl: !Ref OrdersQueue
+              MessageBody:
+                Input.$: "$"
+                Token.$: "$$.Task.Token" # From the context
+            ResultPath: "$.courierStatus"
+            Catch:
+              - ErrorEquals: [NoCourierAvailable]
+                ResultPath: "$.courierError"
+                Next: RefundCustomer
+            Next: DispatchOrder
+          RefundCustomer:
+            Type: Pass
+            Result: "Customer is refunded"
+            ResultPath: "$.refundStatus"
+            Next: RestoreQuantity
+          RestoreQuantity:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [restoreQuantity, Arn]
+            ResultPath: "$.quantityRestoreStatus"
+            Next: RestoreRedeemPoints
           BookNotFoundError:
             Type: Pass
             Result: "No such book available"
