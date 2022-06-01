@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="Step Functions Logo" src="https://42vnof42im1n3ecs8l2w7ez1-wpengine.netdna-ssl.com/wp-content/uploads/2020/07/AWS-Step-Functions@4x-190x190.png" width="150px" />
+  <img alt="Step Functions Logo" src="./.github/docs/workflow.png" width="150px" />
 </p>
 
 <h1 align="center" style="margin-top:30px">
@@ -17,48 +17,52 @@ The POC in this repository is an book store checkout built on top of AWS Step Fu
 <img alt="Step Functions workflow developed in this repository" src="./.github/docs/workflow.png" />
 
 # 👨🏽‍🔧 Tech stack
-* 🔧 <a href="https://aws.amazon.com/step-functions/?step-functions.sort-by=item.additionalFields.postDateTime&step-functions.sort-order=desc">AWS Step Functions</a> - serverless compute service that lets you run code without provisioning or managing servers, creating workload-aware cluster scaling logic, maintaining event integrations, or managing runtimes.
-* 👷🏻 <a href="https://www.google.com/aclk?sa=L&ai=DChcSEwi65ZOUsO_wAhVBgJEKHUiuDwIYABABGgJjZQ&ae=2&sig=AOD64_1WI4JrkomIsRl4pzEy7HCKyY1qNQ&q=&ved=2ahUKEwjKh4yUsO_wAhWCJ7kGHYXxB8oQqyQoAHoECAEQEQ&adurl=">AWS Lambda</a> - serverless compute service that lets you run code without provisioning or managing servers, creating workload-aware cluster scaling logic, maintaining event integrations, or managing runtimes.
-* 🗃️ <a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html">AWS DynamoDB</a> - fully managed NoSQL database service that provides fast and predictable performance with seamless scalability.
-* ✉️ <a href="https://aws.amazon.com/sns/?whats-new-cards.sort-by=item.additionalFields.postDateTime&whats-new-cards.sort-order=desc">AWS SNS (Simple Notification Service)</a> - Fully managed pub/sub messaging, SMS, email, and mobile push notifications.
-* 🗞 <a href="https://aws.amazon.com/sqs/">AWS SQS (Simple Queue Service)</a> - Fully managed message queues for microservices, distributed systems, and serverless applications.
-* 🍃 <a href="https://www.serverless.com/">Serverless Framework</a> - framework that speeds up the development of Serverless cloud-native applications.
+
+- 🔧 <a href="https://aws.amazon.com/step-functions/?step-functions.sort-by=item.additionalFields.postDateTime&step-functions.sort-order=desc">AWS Step Functions</a> - serverless compute service that lets you run code without provisioning or managing servers, creating workload-aware cluster scaling logic, maintaining event integrations, or managing runtimes.
+- 👷🏻 <a href="https://www.google.com/aclk?sa=L&ai=DChcSEwi65ZOUsO_wAhVBgJEKHUiuDwIYABABGgJjZQ&ae=2&sig=AOD64_1WI4JrkomIsRl4pzEy7HCKyY1qNQ&q=&ved=2ahUKEwjKh4yUsO_wAhWCJ7kGHYXxB8oQqyQoAHoECAEQEQ&adurl=">AWS Lambda</a> - serverless compute service that lets you run code without provisioning or managing servers, creating workload-aware cluster scaling logic, maintaining event integrations, or managing runtimes.
+- 🗃️ <a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html">AWS DynamoDB</a> - fully managed NoSQL database service that provides fast and predictable performance with seamless scalability.
+- ✉️ <a href="https://aws.amazon.com/sns/?whats-new-cards.sort-by=item.additionalFields.postDateTime&whats-new-cards.sort-order=desc">AWS SNS (Simple Notification Service)</a> - Fully managed pub/sub messaging, SMS, email, and mobile push notifications.
+- 🗞 <a href="https://aws.amazon.com/sqs/">AWS SQS (Simple Queue Service)</a> - Fully managed message queues for microservices, distributed systems, and serverless applications.
+- 🍃 <a href="https://www.serverless.com/">Serverless Framework</a> - framework that speeds up the development of Serverless cloud-native applications.
 
 # 🖥️ Features
 
-* Check inventory
-* Calculate order total value
-* Redeem points
-* Bill customer
-* Prepare order
-* Dispatch order
-* Refund customer
-* Restore stock quantity
-* Restore redeem points
+- Check inventory
+- Calculate order total value
+- Redeem points
+- Bill customer
+- Prepare order
+- Dispatch order
+- Refund customer
+- Restore stock quantity
+- Restore redeem points
 
 # 🔗 Step Functions Direct Service integrations
 
-* SQS - enqueue order once the costumer is billed
-* SNS - notify the user by e-mail once the order is dispatched
+- SQS - enqueue order once the costumer is billed
+- SNS - notify the user by e-mail once the order is dispatched
 
 # 📌 Design Patterns
 
-* Saga Pattern - crucial pattern to rollback the previous states if something fails. For example, if the order fails, the workflow is expected to:
+- Saga Pattern - crucial pattern to rollback the previous states if something fails. For example, if the order fails, the workflow is expected to:
+
   1. Refund the customer
   2. Restore the stock quantity
   3. Restore redeem points
 
-* Callback Pattern - this pattern is used by the direct integration between Step Functions and SQS. Once an order is prepared, it is sent to an SQS queue and the workflow waits for an response from the SQS worker (a Lambda function polling messages from the queue). This worker is responsible for processing the order and communicate back to Step Functions using an Task Token.
+- Callback Pattern - this pattern is used by the direct integration between Step Functions and SQS. Once an order is prepared, it is sent to an SQS queue and the workflow waits for an response from the SQS worker (a Lambda function polling messages from the queue). This worker is responsible for processing the order and communicate back to Step Functions using an Task Token.
 
 # ✔️ Requirements
-* Node.js 12.x+
-* AWS account
-* AWS IAM user with administrator role and programmatic access (access key id and access secret key)
-* Serverless Framework CLI globally installed on your machine
+
+- Node.js 12.x+
+- AWS account
+- AWS IAM user with administrator role and programmatic access (access key id and access secret key)
+- Serverless Framework CLI globally installed on your machine
 
 # ⚙️ Deploying the app
 
 The stack deployment only requires a single command thanks to the Serverless Framework.
+
 ```
 # Clone this repository
 git clone https://github.com/eduardo3g/serverless-stepf-store-checkout.git
@@ -93,9 +97,9 @@ node seed-users.js
 
 After deploying and seeding the DynamoDB tables with fake data, it's time to finally test the Step Functions state machine.
 
-* Open the DynamoDB tables (Books and Users) and grab the IDs (```bookId``` and ```userId``` attributes).
-* Open Step Functions and select the ```StoreCheckoutFlow``` state machine.
-* Click on ```Start execution``` and pass the following input, replacing the userId and bookId by the ones you created during the database seed process:
+- Open the DynamoDB tables (Books and Users) and grab the IDs (`bookId` and `userId` attributes).
+- Open Step Functions and select the `StoreCheckoutFlow` state machine.
+- Click on `Start execution` and pass the following input, replacing the userId and bookId by the ones you created during the database seed process:
 
 ```
 {
@@ -106,15 +110,15 @@ After deploying and seeding the DynamoDB tables with fake data, it's time to fin
 }
 ```
 
-* The execution will start and you'll be able to inspect in real-time the execution progress in the Step Functions UI.
+- The execution will start and you'll be able to inspect in real-time the execution progress in the Step Functions UI.
 
 # 🧪 Test results
 
 The results below are from the perfect scenario. Unexpected errors happen, like not having the book on stock or any other issue. These scenarios are handled by the Saga Pattern implemented in this architecture.
 
-* The customer will receive an e-mail with the order data
-* The stock quantity will be updated on DynamoDB
-* The user points will be deducted
+- The customer will receive an e-mail with the order data
+- The stock quantity will be updated on DynamoDB
+- The user points will be deducted
 
 # 🐞 Issues
 
