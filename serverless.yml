@@ -19,105 +19,20 @@ custom:
     overwrite: true
 
 functions:
-  checkInventory:
-    handler: src/functions/checkInventory.handler
-    environment:
-      BOOK_TABLE: !Ref BookTable
-    iamRoleStatements:
-      - Effect: Allow
-        Action: dynamodb:Query
-        Resource: !GetAtt BookTable.Arn
-  calculateTotal:
-    handler: src/functions/calculateTotal.handler
-  redeemPoints:
-    handler: src/functions/redeemPoints.handler
-    environment:
-      USER_TABLE: !Ref UserTable
-    iamRoleStatements:
-      - Effect: Allow
-        Action: dynamodb:GetItem
-        Resource: !GetAtt UserTable.Arn
-      - Effect: Allow
-        Action: dynamodb:UpdateItem
-        Resource: !GetAtt UserTable.Arn
-  billCustomer:
-    handler: src/functions/billCustomer.handler
-  restoreRedeemPoints:
-    handler: src/functions/restoreRedeemPoints.handler
-    environment:
-      USER_TABLE: !Ref UserTable
-    iamRoleStatementsName: restoreRedeemPointsDDBRole
-    iamRoleStatements:
-      - Effect: Allow
-        Action: dynamodb:UpdateItem
-        Resource: !GetAtt UserTable.Arn
-  sqsWorker:
-    handler: src/functions/sqsWorker.handler
-    environment:
-      BOOK_TABLE: !Ref BookTable
-    iamRoleStatements:
-      - Effect: Allow
-        Action: dynamodb:UpdateItem
-        Resource: !GetAtt BookTable.Arn
-      - Effect: Allow
-        Action: states:SendTaskSuccess
-        Resource: $${self:resources.Outputs.StoreCheckoutStateMachineArn.Value}
-      - Effect: Allow
-        Action: states:SendTaskFailure
-        Resource: $${self:resources.Outputs.StoreCheckoutStateMachineArn.Value}
-    events:
-      - sqs:
-          arn: !GetAtt OrdersQueue.Arn
-          batchSize: 1
-  restoreQuantity:
-    handler: src/functions/restoreQuantity.handler
-    environment:
-      BOOK_TABLE: !Ref BookTable
-    iamRoleStatements:
-      - Effect: Allow
-        Action: dynamodb:UpdateItem
-        Resource: !GetAtt BookTable.Arn
+  checkInventory: ${file(./serverless/lambda.yml):checkInventory}
+  calculateTotal: ${file(./serverless/lambda.yml):calculateTotal}
+  redeemPoints: ${file(./serverless/lambda.yml):redeemPoints}
+  billCustomer: ${file(./serverless/lambda.yml):billCustomer}
+  restoreRedeemPoints: ${file(./serverless/lambda.yml):restoreRedeemPoints}
+  sqsWorker: ${file(./serverless/lambda.yml):sqsWorker}
+  restoreQuantity: ${file(./serverless/lambda.yml):restoreQuantity}
 
 resources:
   Resources:
-    BookTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        BillingMode: PAY_PER_REQUEST
-        KeySchema:
-          - AttributeName: bookId
-            KeyType: HASH
-        AttributeDefinitions:
-          - AttributeName: bookId
-            AttributeType: S
-        Tags:
-          - Key: Name
-            Value: book-table
-    UserTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        BillingMode: PAY_PER_REQUEST
-        KeySchema:
-          - AttributeName: userId
-            KeyType: HASH
-        AttributeDefinitions:
-          - AttributeName: userId
-            AttributeType: S
-        Tags:
-          - Key: Name
-            Value: user-table
-    OrdersQueue:
-      Type: AWS::SQS::Queue
-      Properties:
-        QueueName: ${self:service}-${self:custom.stage}-queue
-    OrdersTopic:
-      Type: AWS::SNS::Topic
-      Properties:
-        DisplayName: ${self:service}-${self:custom.stage}-orders-topic
-        TopicName: ${self:service}-${self:custom.stage}-orders-topic
-        Subscription:
-          - Endpoint: eduardosbrasil10@gmail.com
-            Protocol: email
+    BookTable: ${file(./serverless/dynamodb.yml):BookTable}
+    UserTable: ${file(./serverless/dynamodb.yml):UserTable}
+    OrdersQueue: ${file(./serverless/sqs.yml):OrdersQueue}
+    OrdersTopic: ${file(./serverless/sns.yml):OrdersTopic}
   Outputs:
     BookTableName:
       Value: !Ref BookTable
@@ -129,114 +44,4 @@ resources:
       Value:
         Ref: StoreCheckoutFlow
 
-stepFunctions:
-  stateMachines:
-    storeCheckoutFlow:
-      name: StoreCheckoutFlow
-      definition:
-        StartAt: checkInventory
-        States:
-          checkInventory:
-            Type: Task
-            Resource:
-              Fn::GetAtt: [checkInventory, Arn]
-            Catch:
-              - ErrorEquals: [BookNotFound]
-                Next: BookNotFoundError
-              - ErrorEquals: [BookOutOfStock]
-                Next: BookOutOfStockError
-            ResultPath: "$.book"
-            Next: calculateTotal
-          calculateTotal:
-            Type: Task
-            Resource:
-              Fn::GetAtt: [calculateTotal, Arn]
-            ResultPath: "$.total"
-            Next: isRedeemNeeded
-          isRedeemNeeded:
-            Type: Choice
-            Choices:
-              - Variable: $.redeem
-                BooleanEquals: true
-                Next: RedeemPoints
-            Default: BillCustomer
-          RedeemPoints:
-            Type: Task
-            Resource:
-              Fn::GetAtt: [redeemPoints, Arn]
-            ResultPath: "$.total"
-            Catch:
-              - ErrorEquals: [States.ALL]
-                Next: RedeemPointsError
-            Next: BillCustomer
-          BillCustomer:
-            Type: Task
-            Resource:
-              Fn::GetAtt: [billCustomer, Arn]
-            ResultPath: "$.billingStatus"
-            Retry:
-              - ErrorEquals: [States.ALL]
-                MaxAttempts: 3
-            Catch:
-              - ErrorEquals: [States.ALL]
-                ResultPath: "$.customerBilling"
-                Next: BillingError
-            Next: PrepareOrder
-          PrepareOrder:
-            Type: Task
-            Resource: arn:aws:states:::sqs:sendMessage.waitForTaskToken
-            Parameters:
-              QueueUrl: !Ref OrdersQueue
-              MessageBody:
-                Input.$: "$"
-                Token.$: "$$.Task.Token" # From the context
-            ResultPath: "$.courierStatus"
-            Catch:
-              - ErrorEquals: [NoCourierAvailable]
-                ResultPath: "$.courierError"
-                Next: RefundCustomer
-            Next: DispatchOrder
-          DispatchOrder:
-            Type: Task
-            Resource: arn:aws:states:::sns:publish
-            Parameters:
-              TopicArn: !Ref OrdersTopic
-              Message.$: "$"
-            Next: Dispatched
-          Dispatched:
-            Type: Pass
-            Result: "Your order will be dispatched in 24 hours"
-            End: true
-          RefundCustomer:
-            Type: Pass
-            Result: "Customer is refunded"
-            ResultPath: "$.refundStatus"
-            Next: RestoreQuantity
-          RestoreQuantity:
-            Type: Task
-            Resource:
-              Fn::GetAtt: [restoreQuantity, Arn]
-            ResultPath: "$.quantityRestoreStatus"
-            Next: RestoreRedeemPoints
-          BookNotFoundError:
-            Type: Pass
-            Result: "No such book available"
-            End: true
-          BookOutOfStockError:
-            Type: Pass
-            Result: "Sorry, the book is out of stock"
-            End: true
-          RedeemPointsError:
-            Type: Pass
-            Result: "Error in redeeming points"
-            End: true
-          BillingError:
-            Type: Pass
-            Result: "Billing error"
-            ResultPath: "$.billingStatus"
-            Next: RestoreRedeemPoints
-          RestoreRedeemPoints:
-            Type: Task
-            Resource:
-              Fn::GetAtt: [restoreRedeemPoints, Arn]
-            End: true
+stepFunctions: ${file(./serverless/stepFunctionsStateMachines.yml)}

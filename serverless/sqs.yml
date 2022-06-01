@@ -1,0 +1,4 @@
+OrdersQueue:
+  Type: AWS::SQS::Queue
+  Properties:
+    QueueName: ${self:service}-${self:custom.stage}-queue

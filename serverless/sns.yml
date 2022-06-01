@@ -1,0 +1,8 @@
+OrdersTopic:
+  Type: AWS::SNS::Topic
+  Properties:
+    DisplayName: ${self:service}-${self:custom.stage}-orders-topic
+    TopicName: ${self:service}-${self:custom.stage}-orders-topic
+    Subscription:
+      - Endpoint: eduardosbrasil10@gmail.com
+        Protocol: email

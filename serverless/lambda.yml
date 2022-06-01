@@ -1,0 +1,58 @@
+checkInventory:
+  handler: src/functions/checkInventory.handler
+  environment:
+    BOOK_TABLE: !Ref BookTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:Query
+      Resource: !GetAtt BookTable.Arn
+calculateTotal:
+  handler: src/functions/calculateTotal.handler
+redeemPoints:
+  handler: src/functions/redeemPoints.handler
+  environment:
+    USER_TABLE: !Ref UserTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt UserTable.Arn
+    - Effect: Allow
+      Action: dynamodb:UpdateItem
+      Resource: !GetAtt UserTable.Arn
+billCustomer:
+  handler: src/functions/billCustomer.handler
+restoreRedeemPoints:
+  handler: src/functions/restoreRedeemPoints.handler
+  environment:
+    USER_TABLE: !Ref UserTable
+  iamRoleStatementsName: restoreRedeemPointsDDBRole
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:UpdateItem
+      Resource: !GetAtt UserTable.Arn
+sqsWorker:
+  handler: src/functions/sqsWorker.handler
+  environment:
+    BOOK_TABLE: !Ref BookTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:UpdateItem
+      Resource: !GetAtt BookTable.Arn
+    - Effect: Allow
+      Action: states:SendTaskSuccess
+      Resource: $${self:resources.Outputs.StoreCheckoutStateMachineArn.Value}
+    - Effect: Allow
+      Action: states:SendTaskFailure
+      Resource: $${self:resources.Outputs.StoreCheckoutStateMachineArn.Value}
+  events:
+    - sqs:
+        arn: !GetAtt OrdersQueue.Arn
+        batchSize: 1
+restoreQuantity:
+  handler: src/functions/restoreQuantity.handler
+  environment:
+    BOOK_TABLE: !Ref BookTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:UpdateItem
+      Resource: !GetAtt BookTable.Arn
