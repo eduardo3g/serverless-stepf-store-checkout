@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="Step Functions Logo" src="./.github/docs/workflow.png" width="150px" />
+  <img alt="Step Functions Logo" src="./.github/docs/sf-icon.png" width="150px" />
 </p>
 
 <h1 align="center" style="margin-top:30px">
