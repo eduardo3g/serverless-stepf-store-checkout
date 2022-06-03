@@ -17,6 +17,7 @@ custom:
   stage: ${opt:stage, self:provider.stage}
   export-env:
     overwrite: true
+  sns-email-address: "your-personal-email@mail.com"
 
 functions:
   checkInventory: ${file(./serverless/lambda.yml):checkInventory}
