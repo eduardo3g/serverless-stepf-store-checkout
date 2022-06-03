@@ -63,6 +63,8 @@ The POC in this repository is an book store checkout built on top of AWS Step Fu
 
 The stack deployment only requires a single command thanks to the Serverless Framework.
 
+<b>IMPORTANT:</b> But before deploying the stack, open the ```serverless.yml``` file and, under the ```custom``` block, replace the ```sns-email-address``` with your personal email.
+
 ```
 # Clone this repository
 git clone https://github.com/eduardo3g/serverless-stepf-store-checkout.git
@@ -76,6 +78,8 @@ npm install
 # Deploy the stack (by detault it'll create a 'dev' stack)
 serverless deploy
 ```
+
+<b>IMPORTANT:</b> Now that the stack has been deployed, open the email address placed on ```sns-email-address``` and click on the confirmation link.
 
 # 🌱 Seeding the database
 
